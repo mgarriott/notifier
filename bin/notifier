@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+
+$:.unshift(File.join(__dir__, '..', 'lib'))
+
+require 'optparse'
+require 'notifier'
+
+opts = OptionParser.new
+
+opts.on('-c', '--create-auth PATH') do |path|
+  if File.exist?(path)
+    puts 'File already exists.'
+    Kernel.exit
+  end
+
+  puts 'Enter your email address: '
+  address = gets.chomp
+  puts 'Enter your password: '
+  password = gets.chomp
+  AuthenticationFile.make_file(path, address, password)
+  Kernel.exit
+end
+
+options = { file: '/home/matt/.auth_file' }
+
+opts.on('-t', '--to TO') {|to| options[:to] = to}
+opts.on('-s', '--subject SUBJECT') {|sub| options[:subject] = sub}
+opts.on('-m', '--msg MSG') {|msg| options[:msg] = msg}
+opts.on('-f', '--auth-file PATH') {|f| options[:file] = f}
+
+opts.parse!(ARGV)
+
+required = [:to, :subject, :msg, :file]
+
+valid = true
+required.each {|el| valid = false if !options.has_key?(el) }
+
+if valid
+  n = Notifier.new(auth_file: AuthenticationFile.new(options[:file]))
+  n.send(options[:to], options[:subject], options[:msg])
+else
+  puts 'Missing arguments. Try again.'
+  Kernel.exit
+end
